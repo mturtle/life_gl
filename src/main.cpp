@@ -1,61 +1,24 @@
 #define GLFW_INCLUDE_NONE
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-
+#include <glm/vec3.hpp>
 #include <iostream>
 
-
-static void GLFWErrorCallback(int error, const char* description)
-{
-    std::cout << "GLFW error: " << description;
-}
-
-static void GLFWKeyCallback(GLFWwindow* window, int key, int scanCode, int action, int mods)
-{
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-    {
-        glfwSetWindowShouldClose(window, true);
-    }
-}
+#include "renderer.h"
 
 int main()
 {
     std::cout << "It's ALIVE" << std::endl;
 
-    GLFWwindow* window;
-    if (!glfwInit())
-    {
-        std::cout << "Failed to init glfw\n";
-    }
+    Renderer renderer(1200, 600);
 
-    glfwSetErrorCallback(GLFWErrorCallback);
-
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-    window = glfwCreateWindow(1200, 600, "Minimum GL", NULL, NULL);
-    if (!window)
-    {
-        glfwTerminate();
-        exit(EXIT_FAILURE);
-    }
-
-    glfwSetKeyCallback(window, GLFWKeyCallback);
-
-    glfwMakeContextCurrent(window);
-    if (!gladLoadGL())
-    {
-        std::cout << "Error occured during opengl extension (glad) loading\n";
-        glfwTerminate();
-        exit(EXIT_FAILURE);
-    }
-
-    while (!glfwWindowShouldClose(window))
+    while (!glfwWindowShouldClose(renderer.render_window))
     {
         glfwPollEvents();
-        glfwSwapBuffers(window);
+        renderer.Draw();
     }
 
-    glfwDestroyWindow(window);
+    glfwDestroyWindow(renderer.render_window);
  
     glfwTerminate();
     exit(EXIT_SUCCESS);
