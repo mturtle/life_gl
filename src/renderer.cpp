@@ -1,5 +1,6 @@
 #include "renderer.h"
 #include <iostream>
+#include <filesystem>
 
 Renderer::Renderer(const int renderWidth, const int renderHeight)
 {
@@ -56,4 +57,14 @@ void Renderer::GLFWKeyCallback(GLFWwindow *window, int key, int scanCode, int ac
     {
         glfwSetWindowShouldClose(window, true);
     }
+}
+
+void Renderer::LoadShaders(const std::string& resourcePath)
+{
+    //std::filesystem::directory_iterator(".");
+
+    // for (const auto& entry : std::filesystem::directory_iterator(resourcePath))
+    // {
+    //     std::cout << entry.path() << std::endl;
+    // }
 }
