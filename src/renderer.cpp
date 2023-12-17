@@ -1,6 +1,7 @@
 #include "renderer.h"
 #include <iostream>
-#include <filesystem>
+#include <dirent.h>
+#include <fstream>
 
 Renderer::Renderer(const int renderWidth, const int renderHeight)
 {
@@ -46,6 +47,26 @@ void Renderer::Draw()
     glfwSwapBuffers(render_window);
 }
 
+void Renderer::LinkPrograms()
+{
+    // for each vertex shader, find a matching fragment shader and link them together
+    for (auto& shader_entry : vertex_shaders)
+    {
+        const std::string& base_name = shader_entry.first;
+        const Shader& vertex_shader = shader_entry.second;
+
+        if (fragment_shaders.find(base_name) != fragment_shaders.end())
+        {
+            const Shader& fragment_shader = fragment_shaders[base_name];
+            ShaderProgram shader_program(vertex_shader, fragment_shader);
+            if (shader_program.IsValid())
+            {
+                shader_programs.emplace(base_name, shader_program);
+            }
+        }
+    }
+}
+
 void Renderer::GLFWErrorCallback(int error, const char *description)
 {
     std::cout << "GFLW error: " << description;
@@ -59,12 +80,159 @@ void Renderer::GLFWKeyCallback(GLFWwindow *window, int key, int scanCode, int ac
     }
 }
 
+bool Shader::LoadShaderSource(const std::string& shaderPath, std::string& shaderSource)
+{
+    std::string line;
+    std::ifstream shader_filestream(shaderPath);
+    if (shader_filestream.is_open())
+    {
+        while (getline(shader_filestream, line))
+        {
+            shaderSource += line + "\n";
+        }
+        shader_filestream.close();
+        return true;
+    }
+    else
+    {
+        std::cout << "Failed to open file: " << shaderPath << std::endl;
+        return false;
+    }
+}
+
 void Renderer::LoadShaders(const std::string& resourcePath)
 {
-    //std::filesystem::directory_iterator(".");
+    // load all shaders from resourcePath, expecting a .vert and .frag file for each shader,
+    // and store them in the shaders map
+    DIR* dir;
+    struct dirent* ent;
 
-    // for (const auto& entry : std::filesystem::directory_iterator(resourcePath))
-    // {
-    //     std::cout << entry.path() << std::endl;
-    // }
+    if ((dir = opendir(resourcePath.c_str())) != NULL)
+    {
+        while ((ent = readdir(dir)) != NULL)
+        {
+            std::string fileName(ent->d_name);
+            std::cout << "Loading resource: " << fileName << std::endl;
+            std::string baseFileName = fileName.substr(0, fileName.find_last_of("."));
+
+            if (fileName.find(".vert") != std::string::npos)
+            {
+                std::cout << "Found vertex shader: " << fileName << std::endl;
+                Shader vert_shader = Shader(resourcePath + "/" + fileName, ShaderType::Vertex);
+
+                if (vert_shader.IsValid())
+                {
+                    vertex_shaders.emplace(baseFileName, vert_shader);
+                }
+            }
+            else if (fileName.find(".frag") != std::string::npos)
+            {
+                std::cout << "Found fragment shader: " << fileName << std::endl;
+                Shader frag_shader = Shader(resourcePath + "/" + fileName, ShaderType::Fragment);
+
+                if (frag_shader.IsValid())
+                {
+                    fragment_shaders.emplace(baseFileName, frag_shader);
+                }
+            }
+        }
+        closedir(dir);
+
+        // now link all matching vertex and fragment shaders together
+        LinkPrograms();
+    }
+    else
+    {
+        std::cout << "Failed to open directory: " << resourcePath << std::endl;
+    }
+}
+
+const Shader &Renderer::GetShader(const std::string &shaderName, const ShaderType shaderType) const
+{
+    if (shaderType == ShaderType::Vertex)
+    {
+        return vertex_shaders.at(shaderName);
+    }
+    else
+    {
+        return fragment_shaders.at(shaderName);
+    }
+}
+
+Shader::Shader(const std::string& shaderPath, const ShaderType shaderType)
+{
+    shader_type = shaderType;
+    std::string shaderSource;
+    if (LoadShaderSource(shaderPath, shaderSource))
+    {
+        shader_id = glCreateShader(shaderType == ShaderType::Vertex ? GL_VERTEX_SHADER : GL_FRAGMENT_SHADER);
+        const GLchar* shaderSourcePtr = shaderSource.c_str();
+        glShaderSource(shader_id, 1, &shaderSourcePtr, NULL);
+        glCompileShader(shader_id);
+
+        GLint compileStatus;
+        glGetShaderiv(shader_id, GL_COMPILE_STATUS, &compileStatus);
+        if (compileStatus != GL_TRUE)
+        {
+            std::cout << "Failed to compile shader: " << shaderPath << std::endl;
+            GLint logLength;
+            glGetShaderiv(shader_id, GL_INFO_LOG_LENGTH, &logLength);
+            GLchar* log = new GLchar[logLength + 1];
+            glGetShaderInfoLog(shader_id, logLength, NULL, log);
+            std::cout << log << std::endl;
+            delete[] log;
+
+            glDeleteShader(shader_id);
+            shader_id = GL_FALSE;
+        }
+        else
+        {
+            std::cout << "Successfully compiled shader: " << shaderPath << std::endl;
+        }
+    }
+}
+
+Shader::~Shader()
+{
+    glDeleteShader(shader_id);
+}
+
+ShaderProgram::ShaderProgram(const Shader& vertexShader, const Shader& fragmentShader)
+{
+    if (!vertexShader.IsValid() || !fragmentShader.IsValid())
+    {
+        std::cout << "Failed to create shader program, invalid shader inputs\n";
+        shader_program_id = GL_FALSE;
+        return;
+    }
+
+    shader_program_id = glCreateProgram();
+    glAttachShader(shader_program_id, vertexShader.GetShaderId());
+    glAttachShader(shader_program_id, fragmentShader.GetShaderId());
+    glLinkProgram(shader_program_id);
+
+    GLint linkStatus;
+    glGetProgramiv(shader_program_id, GL_LINK_STATUS, &linkStatus);
+    if (linkStatus != GL_TRUE)
+    {
+        std::cout << "Failed to link shader program" << std::endl;
+        GLint logLength;
+        glGetProgramiv(shader_program_id, GL_INFO_LOG_LENGTH, &logLength);
+        GLchar* log = new GLchar[logLength + 1];
+        glGetProgramInfoLog(shader_program_id, logLength, NULL, log);
+        std::cout << log << std::endl;
+        delete[] log;
+
+        glDeleteProgram(shader_program_id);
+        shader_program_id = GL_FALSE;
+    }
+    else
+    {
+        std::cout << "Successfully linked shader program" << std::endl;
+    }
+}
+
+ShaderProgram::~ShaderProgram()
+{
+    glDeleteProgram(shader_program_id);
 }

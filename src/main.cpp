@@ -12,7 +12,7 @@ int main()
     std::cout << std::string("It's ALIVE") << std::endl;
 
     Renderer renderer(1200, 600);
-    //renderer.LoadShaders(std::string("res/shaders"));
+    renderer.LoadShaders(std::string("../res/shaders"));
 
     while (!glfwWindowShouldClose(renderer.render_window))
     {
