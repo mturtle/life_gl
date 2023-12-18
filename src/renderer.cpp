@@ -53,13 +53,13 @@ void Renderer::LinkPrograms()
     for (auto& shader_entry : vertex_shaders)
     {
         const std::string& base_name = shader_entry.first;
-        const Shader& vertex_shader = shader_entry.second;
+        std::shared_ptr<Shader> vertex_shader = shader_entry.second;
 
         if (fragment_shaders.find(base_name) != fragment_shaders.end())
         {
-            const Shader& fragment_shader = fragment_shaders[base_name];
-            ShaderProgram shader_program(vertex_shader, fragment_shader);
-            if (shader_program.IsValid())
+            std::shared_ptr<Shader> fragment_shader = fragment_shaders[base_name];
+            std::shared_ptr<ShaderProgram> shader_program = std::make_shared<ShaderProgram>(vertex_shader, fragment_shader);
+            if (shader_program->IsValid())
             {
                 shader_programs.emplace(base_name, shader_program);
             }
@@ -118,9 +118,9 @@ void Renderer::LoadShaders(const std::string& resourcePath)
             if (fileName.find(".vert") != std::string::npos)
             {
                 std::cout << "Found vertex shader: " << fileName << std::endl;
-                Shader vert_shader = Shader(resourcePath + "/" + fileName, ShaderType::Vertex);
+                std::shared_ptr<Shader> vert_shader = std::make_shared<Shader>(resourcePath + "/" + fileName, ShaderType::Vertex);
 
-                if (vert_shader.IsValid())
+                if (vert_shader->IsValid())
                 {
                     vertex_shaders.emplace(baseFileName, vert_shader);
                 }
@@ -128,9 +128,9 @@ void Renderer::LoadShaders(const std::string& resourcePath)
             else if (fileName.find(".frag") != std::string::npos)
             {
                 std::cout << "Found fragment shader: " << fileName << std::endl;
-                Shader frag_shader = Shader(resourcePath + "/" + fileName, ShaderType::Fragment);
+                std::shared_ptr<Shader> frag_shader = std::make_shared<Shader>(resourcePath + "/" + fileName, ShaderType::Fragment);
 
-                if (frag_shader.IsValid())
+                if (frag_shader->IsValid())
                 {
                     fragment_shaders.emplace(baseFileName, frag_shader);
                 }
@@ -144,18 +144,6 @@ void Renderer::LoadShaders(const std::string& resourcePath)
     else
     {
         std::cout << "Failed to open directory: " << resourcePath << std::endl;
-    }
-}
-
-const Shader &Renderer::GetShader(const std::string &shaderName, const ShaderType shaderType) const
-{
-    if (shaderType == ShaderType::Vertex)
-    {
-        return vertex_shaders.at(shaderName);
-    }
-    else
-    {
-        return fragment_shaders.at(shaderName);
     }
 }
 
@@ -187,7 +175,7 @@ Shader::Shader(const std::string& shaderPath, const ShaderType shaderType)
         }
         else
         {
-            std::cout << "Successfully compiled shader: " << shaderPath << std::endl;
+            std::cout << "Successfully compiled shader: " << shaderPath << "id: " << shader_id << std::endl;
         }
     }
 }
@@ -197,9 +185,9 @@ Shader::~Shader()
     glDeleteShader(shader_id);
 }
 
-ShaderProgram::ShaderProgram(const Shader& vertexShader, const Shader& fragmentShader)
+ShaderProgram::ShaderProgram(std::shared_ptr<Shader> vertexShader, std::shared_ptr<Shader> fragmentShader)
 {
-    if (!vertexShader.IsValid() || !fragmentShader.IsValid())
+    if (!vertexShader->IsValid() || !fragmentShader->IsValid())
     {
         std::cout << "Failed to create shader program, invalid shader inputs\n";
         shader_program_id = GL_FALSE;
@@ -207,8 +195,8 @@ ShaderProgram::ShaderProgram(const Shader& vertexShader, const Shader& fragmentS
     }
 
     shader_program_id = glCreateProgram();
-    glAttachShader(shader_program_id, vertexShader.GetShaderId());
-    glAttachShader(shader_program_id, fragmentShader.GetShaderId());
+    glAttachShader(shader_program_id, vertexShader->GetShaderId());
+    glAttachShader(shader_program_id, fragmentShader->GetShaderId());
     glLinkProgram(shader_program_id);
 
     GLint linkStatus;

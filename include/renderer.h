@@ -6,6 +6,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/vec3.hpp>
+#include <memory>
 
 
 enum class ShaderType
@@ -35,7 +36,7 @@ class ShaderProgram
 {
 public:
     ShaderProgram() = default;
-    ShaderProgram(const Shader& vertexShader, const Shader& fragmentShader);
+    ShaderProgram(std::shared_ptr<Shader> vertexShader, std::shared_ptr<Shader> fragmentShader);
     ~ShaderProgram();
     bool IsValid() const { return shader_program_id != GL_FALSE; }
 
@@ -50,7 +51,6 @@ public:
     ~Renderer();
     void Draw();
     void LoadShaders(const std::string& resourcePath);
-    const Shader& GetShader(const std::string& shaderName, const ShaderType shaderType) const;
 
 private:
     void LinkPrograms();
@@ -64,7 +64,7 @@ public:
 private:
     glm::vec3 backColor = glm::vec3(0.25f, 0.25f, 1.0f);
     std::vector<int> objects;
-    std::unordered_map<std::string, Shader> vertex_shaders;
-    std::unordered_map<std::string, Shader> fragment_shaders;
-    std::unordered_map<std::string, ShaderProgram> shader_programs;
+    std::unordered_map<std::string, std::shared_ptr<Shader>> vertex_shaders;
+    std::unordered_map<std::string, std::shared_ptr<Shader>> fragment_shaders;
+    std::unordered_map<std::string, std::shared_ptr<ShaderProgram>> shader_programs;
 };
