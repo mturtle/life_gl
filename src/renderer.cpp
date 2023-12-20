@@ -1,7 +1,10 @@
 #include "renderer.h"
+
 #include <iostream>
 #include <dirent.h>
 #include <fstream>
+
+#include "mesh.h"
 
 Renderer::Renderer(const int renderWidth, const int renderHeight)
 {
@@ -43,6 +46,11 @@ Renderer::~Renderer()
 void Renderer::Draw()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    
+    for (std::shared_ptr<MeshObject> object : objects)
+    {
+        object->Render();
+    }
 
     glfwSwapBuffers(render_window);
 }
@@ -117,8 +125,7 @@ void Renderer::LoadShaders(const std::string& resourcePath)
 
             if (fileName.find(".vert") != std::string::npos)
             {
-                std::cout << "Found vertex shader: " << fileName << std::endl;
-                std::shared_ptr<Shader> vert_shader = std::make_shared<Shader>(resourcePath + "/" + fileName, ShaderType::Vertex);
+                std::shared_ptr<Shader> vert_shader = std::make_shared<Shader>(resourcePath, baseFileName, ShaderType::Vertex);
 
                 if (vert_shader->IsValid())
                 {
@@ -127,8 +134,7 @@ void Renderer::LoadShaders(const std::string& resourcePath)
             }
             else if (fileName.find(".frag") != std::string::npos)
             {
-                std::cout << "Found fragment shader: " << fileName << std::endl;
-                std::shared_ptr<Shader> frag_shader = std::make_shared<Shader>(resourcePath + "/" + fileName, ShaderType::Fragment);
+                std::shared_ptr<Shader> frag_shader = std::make_shared<Shader>(resourcePath, baseFileName, ShaderType::Fragment);
 
                 if (frag_shader->IsValid())
                 {
@@ -147,11 +153,32 @@ void Renderer::LoadShaders(const std::string& resourcePath)
     }
 }
 
-Shader::Shader(const std::string& shaderPath, const ShaderType shaderType)
+std::shared_ptr<ShaderProgram> Renderer::GetShaderProgram(const std::string& shaderProgramName)
+{
+    if (shader_programs.find(shaderProgramName) != shader_programs.end())
+    {
+        return shader_programs[shaderProgramName];
+    }
+    else
+    {
+        std::cout << "Failed to find shader program: " << shaderProgramName << std::endl;
+        return nullptr;
+    }
+}
+
+void Renderer::AddObject(std::shared_ptr<MeshObject> object)
+{
+    objects.push_back(object);
+}
+
+Shader::Shader(const std::string& shaderPath, const std::string& shaderFile, const ShaderType shaderType)
+: name(shaderFile)
 {
     shader_type = shaderType;
     std::string shaderSource;
-    if (LoadShaderSource(shaderPath, shaderSource))
+    std::string shaderFullPath = shaderPath + "/" + shaderFile + (shaderType == ShaderType::Vertex ? ".vert" : ".frag");
+    
+    if (LoadShaderSource(shaderFullPath, shaderSource))
     {
         shader_id = glCreateShader(shaderType == ShaderType::Vertex ? GL_VERTEX_SHADER : GL_FRAGMENT_SHADER);
         const GLchar* shaderSourcePtr = shaderSource.c_str();
@@ -162,7 +189,7 @@ Shader::Shader(const std::string& shaderPath, const ShaderType shaderType)
         glGetShaderiv(shader_id, GL_COMPILE_STATUS, &compileStatus);
         if (compileStatus != GL_TRUE)
         {
-            std::cout << "Failed to compile shader: " << shaderPath << std::endl;
+            std::cout << "Failed to compile " << (shaderType == ShaderType::Vertex ? "vertex" : "fragment") << " shader: " << shaderFile << std::endl;
             GLint logLength;
             glGetShaderiv(shader_id, GL_INFO_LOG_LENGTH, &logLength);
             GLchar* log = new GLchar[logLength + 1];
@@ -175,7 +202,7 @@ Shader::Shader(const std::string& shaderPath, const ShaderType shaderType)
         }
         else
         {
-            std::cout << "Successfully compiled shader: " << shaderPath << "id: " << shader_id << std::endl;
+            std::cout << "Successfully compiled shader: " << shaderFile << " id: " << shader_id << std::endl;
         }
     }
 }
@@ -186,6 +213,7 @@ Shader::~Shader()
 }
 
 ShaderProgram::ShaderProgram(std::shared_ptr<Shader> vertexShader, std::shared_ptr<Shader> fragmentShader)
+    : name(vertexShader->name)
 {
     if (!vertexShader->IsValid() || !fragmentShader->IsValid())
     {
@@ -216,11 +244,37 @@ ShaderProgram::ShaderProgram(std::shared_ptr<Shader> vertexShader, std::shared_p
     }
     else
     {
-        std::cout << "Successfully linked shader program" << std::endl;
+        std::cout << "Successfully linked shader program: " << name << " id: " << shader_program_id << std::endl;
     }
 }
 
 ShaderProgram::~ShaderProgram()
 {
     glDeleteProgram(shader_program_id);
+}
+
+void ShaderProgram::SetUniform(const std::string &uniformName, const glm::vec3 &vector)
+{
+    GLint uniformLocation = glGetUniformLocation(shader_program_id, uniformName.c_str());
+    if (uniformLocation != -1)
+    {
+        glUniform3fv(uniformLocation, 1, &vector[0]);
+    }
+    else
+    {
+        std::cout << "Failed to find uniform: " << uniformName << std::endl;
+    }
+}
+
+void ShaderProgram::SetUniform(const std::string &uniformName, const glm::mat4 &matrix)
+{
+    GLint uniformLocation = glGetUniformLocation(shader_program_id, uniformName.c_str());
+    if (uniformLocation != -1)
+    {
+        glUniformMatrix4fv(uniformLocation, 1, GL_FALSE, &matrix[0][0]);
+    }
+    else
+    {
+        std::cout << "Failed to find uniform: " << uniformName << std::endl;
+    }
 }

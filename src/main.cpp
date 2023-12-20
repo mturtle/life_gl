@@ -6,6 +6,7 @@
 #include <string>
 
 #include "renderer.h"
+#include "mesh.h"
 
 int main()
 {
@@ -13,6 +14,16 @@ int main()
 
     Renderer renderer(1200, 600);
     renderer.LoadShaders(std::string("../res/shaders"));
+
+    std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>(std::vector<glm::vec3>{
+        glm::vec3(-0.5f, -0.5f, 0.0f),
+        glm::vec3( 0.5f, -0.5f, 0.0f),
+        glm::vec3( 0.0f,  0.5f, 0.0f)
+    });
+
+    std::shared_ptr<ShaderProgram> shaderProgram = renderer.GetShaderProgram("basic");
+    std::shared_ptr<MeshObject> meshObject = std::make_shared<MeshObject>(shaderProgram, mesh, glm::mat4(1.0f));
+    renderer.AddObject(meshObject);
 
     while (!glfwWindowShouldClose(renderer.render_window))
     {

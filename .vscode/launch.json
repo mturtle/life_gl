@@ -16,7 +16,13 @@
             "externalConsole": false,
             "MIMode": "gdb",
             "miDebuggerPath": "gdb",
-            "preLaunchTask": "make project"
+            "preLaunchTask": "make project",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }]
         }
 
     ]
