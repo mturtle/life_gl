@@ -7,6 +7,7 @@
 
 #include "renderer.h"
 #include "mesh.h"
+#include <glm/ext/matrix_transform.hpp>
 
 int main()
 {
@@ -21,9 +22,27 @@ int main()
         glm::vec3( 0.0f,  0.5f, 0.0f)
     });
 
-    std::shared_ptr<ShaderProgram> shaderProgram = renderer.GetShaderProgram("basic");
-    std::shared_ptr<MeshObject> meshObject = std::make_shared<MeshObject>(shaderProgram, mesh, glm::mat4(1.0f));
+    std::shared_ptr<ShaderProgram> basicShader = renderer.GetShaderProgram("basic");
+
+    // build a test object transform, translated down 1 unit in y and rotated 20 degrees around the z axis
+    glm::mat4 objectTransform = glm::mat4(1.0f);
+    //objectTransform = glm::translate(objectTransform, glm::vec3(0.0f, -1.0f, 0.0f));
+    //objectTransform = glm::rotate(objectTransform, glm::radians(20.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    
+    std::shared_ptr<MeshObject> meshObject = std::make_shared<MeshObject>(basicShader, mesh, objectTransform);
     renderer.AddObject(meshObject);
+
+    // a sample point cloud
+    std::vector<glm::vec3> points(1000);
+    for (int idx = 0; idx < 1000; idx++)
+    {
+        points[idx] = glm::vec3( 2.0 * (std::rand() / (float)RAND_MAX) - 1.0f,
+                                 2.0 * (std::rand() / (float)RAND_MAX) - 1.0f,
+                                 2.0 * (std::rand() / (float)RAND_MAX) - 1.0f);
+    }
+
+    std::shared_ptr<Mesh> pointCloud = std::make_shared<PointCloud>(points);
+    renderer.AddObject(std::make_shared<MeshObject>(basicShader, pointCloud, glm::mat4(1.0f)));
 
     while (!glfwWindowShouldClose(renderer.render_window))
     {

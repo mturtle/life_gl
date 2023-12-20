@@ -45,6 +45,8 @@ public:
     ~ShaderProgram();
     bool IsValid() const { return shader_program_id != GL_FALSE; }
     int GetProgramId() const { return shader_program_id; }
+    void Bind();
+    void Unbind();
     void SetUniform(const std::string& uniformName, const glm::vec3& vector);
     void SetUniform(const std::string& uniformName, const glm::mat4& matrix);
 

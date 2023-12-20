@@ -253,6 +253,16 @@ ShaderProgram::~ShaderProgram()
     glDeleteProgram(shader_program_id);
 }
 
+void ShaderProgram::Bind()
+{
+    glUseProgram(shader_program_id);
+}
+
+void ShaderProgram::Unbind()
+{
+    glUseProgram(0);
+}
+
 void ShaderProgram::SetUniform(const std::string &uniformName, const glm::vec3 &vector)
 {
     GLint uniformLocation = glGetUniformLocation(shader_program_id, uniformName.c_str());

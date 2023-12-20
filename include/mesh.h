@@ -13,29 +13,34 @@ public:
     Mesh() = default;
     Mesh(std::vector<glm::vec3> vertices);
 
-    void Bind();
-    void Unbind();
+    virtual void Render();
 
+protected:
     std::vector<glm::vec3> vertices;
-
-private:
-
     unsigned int vbo_id;
     unsigned int vao_id;
 };
 
+class PointCloud : public Mesh
+{
+public:
+    PointCloud() = default;
+    PointCloud(std::vector<glm::vec3> vertices);
+
+    void Render() override;
+};
+
+
 class MeshObject {
 public:
     MeshObject(std::shared_ptr<ShaderProgram> shaderProgram, std::shared_ptr<Mesh> meshObject, glm::mat4 transform)
-        : shaderProgram(shaderProgram), mesh(meshObject), transform(transform) {}
+        : shaderProgram(shaderProgram), mesh(meshObject), objectTransform(transform) {}
 
     void Update() {}
     void Render();
 
-    // TODO: Add methods to update the transform, shader program, and VBO
-
 private:
     std::shared_ptr<ShaderProgram> shaderProgram;
     std::shared_ptr<Mesh> mesh;
-    glm::mat4 transform;
+    glm::mat4 objectTransform;
 };
