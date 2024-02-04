@@ -63,7 +63,9 @@ public:
     Renderer(const int renderWidth, const int renderHeight);
     ~Renderer();
 
-    void Draw();
+    void Render();
+    void BeginFrame();
+    void EndFrame();
     void LoadShaders(const std::string& resourcePath);
     std::shared_ptr<ShaderProgram> GetShaderProgram(const std::string& shaderProgramName);
     void AddObject(std::shared_ptr<MeshObject> object);

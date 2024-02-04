@@ -36,7 +36,7 @@ public:
     MeshObject(std::shared_ptr<ShaderProgram> shaderProgram, std::shared_ptr<Mesh> meshObject, glm::mat4 transform)
         : shaderProgram(shaderProgram), mesh(meshObject), objectTransform(transform) {}
 
-    void Update() {}
+    void Update(float deltaTime) {}
     void Render();
 
 private:

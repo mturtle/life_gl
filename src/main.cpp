@@ -2,12 +2,13 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/vec3.hpp>
+#include <glm/ext/matrix_transform.hpp>
 #include <iostream>
 #include <string>
 
 #include "renderer.h"
+#include "scene.h"
 #include "mesh.h"
-#include <glm/ext/matrix_transform.hpp>
 
 int main()
 {
@@ -15,6 +16,8 @@ int main()
 
     Renderer renderer(1200, 600);
     renderer.LoadShaders(std::string("../res/shaders"));
+
+    Scene scene;
 
     std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>(std::vector<glm::vec3>{
         glm::vec3(-0.5f, -0.5f, 0.0f),
@@ -24,7 +27,6 @@ int main()
 
     std::shared_ptr<ShaderProgram> basicShader = renderer.GetShaderProgram("basic");
 
-    // build a test object transform, translated down 1 unit in y and rotated 20 degrees around the z axis
     glm::mat4 objectTransform = glm::mat4(1.0f);
     //objectTransform = glm::translate(objectTransform, glm::vec3(0.0f, -1.0f, 0.0f));
     //objectTransform = glm::rotate(objectTransform, glm::radians(20.0f), glm::vec3(0.0f, 0.0f, 1.0f));
@@ -43,11 +45,14 @@ int main()
 
     std::shared_ptr<Mesh> pointCloud = std::make_shared<PointCloud>(points);
     renderer.AddObject(std::make_shared<MeshObject>(basicShader, pointCloud, glm::mat4(1.0f)));
+    float lastFrameTime = glfwGetTime();
 
     while (!glfwWindowShouldClose(renderer.render_window))
     {
         glfwPollEvents();
-        renderer.Draw();
+
+        scene.Update(0.0f);
+        renderer.Render();
     }
 
     glfwDestroyWindow(renderer.render_window);

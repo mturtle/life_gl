@@ -43,15 +43,25 @@ Renderer::~Renderer()
     glfwTerminate();
 }
 
-void Renderer::Draw()
+void Renderer::Render()
 {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
-    for (std::shared_ptr<MeshObject> object : objects)
+    BeginFrame();
+
+    for (const std::shared_ptr<MeshObject> object : objects)
     {
         object->Render();
     }
 
+    EndFrame();
+}
+
+void Renderer::BeginFrame()
+{
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
+
+void Renderer::EndFrame()
+{
     glfwSwapBuffers(render_window);
 }
 
